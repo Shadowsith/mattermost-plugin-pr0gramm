@@ -1,0 +1,61 @@
+{
+    "id": "pr0gramm",
+    "name": "Pr0gramm",
+    "description": "This plugin serves as a starting point for writing a Mattermost plugin.",
+    "homepage_url": "https://github.com/Shadowsith/mattermost-plugin-pr0gramm",
+    "support_url": "https://github.com/Shadowsith/mattermost-plugin-pr0gramm/issues",
+    "release_notes_url": "https://github.com/Shadowsith/mattermost-plugin-pr0gramm/releases/tag/v0.1.0",
+    "version": "1.0.0",
+    "min_server_version": "6.2.1",
+    "server": {
+        "executables": {
+            "linux-amd64": "server/plugin-linux-amd64",
+            "darwin-amd64": "server/plugin-darwin-amd64",
+            "windows-amd64": "server/plugin-windows-amd64.exe"
+        }
+    },
+    "webapp": {
+        "bundle_path": "client/main.js"
+    },
+    "settings_schema": {
+        "header": "Pr0gramm settings",
+        "footer": "",
+        "settings": [
+            {
+                "key": "username",
+                "display_name": "Username",
+                "type": "text",
+                "help_text": "Add Pr0gramm username to access member only content",
+                "default": ""
+            },
+            {
+                "key": "password",
+                "display_name": "Password",
+                "type": "text",
+                "help_text": "Add password for Pr0gramm username to access member only content",
+                "default": ""
+            },
+            {
+                "key": "maxheight",
+                "display_name": "img/video max height",
+                "type": "number",
+                "help_text": "Set max height of image or video element in chat",
+                "default": "400"
+            },
+            {
+                "key": "tags",
+                "display_name": "Toggle tags",
+                "type": "bool",
+                "help_text": "Enable or disable view of post tags",
+                "default": "true"
+            },
+            {
+                "key": "rating",
+                "display_name": "Toggle rating",
+                "type": "bool",
+                "help_text": "Enable or disable view of post rating",
+                "default": "true"
+            }
+        ]
+    }
+}

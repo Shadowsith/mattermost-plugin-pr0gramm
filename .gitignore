@@ -1,0 +1,6 @@
+*amd64
+
+/dist
+/node_modules
+/mattermost-pr0gramm-plugin
+*.tar.gz
