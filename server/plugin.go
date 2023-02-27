@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -18,17 +19,17 @@ type Pr0grammPlugin struct {
 }
 
 type PluginSettings struct {
-	username  string
-	password  string
-	maxHeight int
-	tags      bool
-	rating    bool
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	MaxHeight int    `json:"maxHeight"`
+	Tags      bool   `json:"tags"`
+	Rating    bool   `json:"rating"`
 }
 
 type ClientSettings struct {
-	maxHeight int
-	tags      bool
-	rating    bool
+	MaxHeight int  `json:"maxHeight"`
+	Tags      bool `json:"tags"`
+	Rating    bool `json:"rating"`
 }
 
 const (
@@ -78,28 +79,28 @@ func (p *Pr0grammPlugin) getSettings() *PluginSettings {
 	if ok {
 		for k, v := range pluginSettings {
 			if k == "username" {
-				settings.username = v.(string)
+				settings.Username = v.(string)
 			} else if k == "password" {
-				settings.password = v.(string)
+				settings.Password = v.(string)
 			} else if k == "maxheight" {
 				maxHeight, err := strconv.Atoi(
 					fmt.Sprintf("%v", v))
 				if err != nil {
 					log.Fatal(err)
 				}
-				settings.maxHeight = maxHeight
+				settings.MaxHeight = maxHeight
 			} else if k == "tags" {
 				val, ok := v.(bool)
 				if !ok {
 					val = false
 				}
-				settings.tags = val
+				settings.Tags = val
 			} else if k == "rating" {
 				val, ok := v.(bool)
 				if !ok {
 					val = false
 				}
-				settings.rating = val
+				settings.Rating = val
 			}
 		}
 	}
@@ -117,19 +118,19 @@ func (p *Pr0grammPlugin) getClientSettings(w http.ResponseWriter) *ClientSetting
 				if err != nil {
 					log.Fatal(err)
 				}
-				settings.maxHeight = maxHeight
+				settings.MaxHeight = maxHeight
 			} else if k == "tags" {
 				val, ok := v.(bool)
 				if !ok {
 					val = false
 				}
-				settings.tags = val
+				settings.Tags = val
 			} else if k == "rating" {
 				val, ok := v.(bool)
 				if !ok {
 					val = false
 				}
-				settings.rating = val
+				settings.Rating = val
 			}
 		}
 	}
@@ -142,7 +143,7 @@ func (p *Pr0grammPlugin) handleRequestResult(w http.ResponseWriter, resp *http.R
 	} else {
 		response := p.handleResponse(resp)
 		if response == "error" {
-			fmt.Fprint(w, "{ \"error\":\"pr0gramm http request error\"}")
+			fmt.Fprint(w, "{ \"error\":\"pr0gramm http request error \"}")
 		} else {
 			clientSettings := p.getClientSettings(w)
 			response = strings.TrimRight(response, "}")
@@ -152,15 +153,24 @@ func (p *Pr0grammPlugin) handleRequestResult(w http.ResponseWriter, resp *http.R
 }
 
 func (p *Pr0grammPlugin) addClientSettingsToResult(w http.ResponseWriter, response string, settings *ClientSettings) string {
-	response = strings.TrimRight(response, "}")
-	return response + fmt.Sprintf(", \"clientSettings\": { \"maxHeight\": %d, "+
-		"\"tags\": %t, \"rating\": %t }}", settings.maxHeight, settings.tags, settings.rating)
+	json, err := json.Marshal(&settings)
+	if err != nil {
+		return response
+	} else {
+		if string(json) != "{}" {
+			return strings.TrimRight(response, "}") + ", \"clientSettings\": " + string(json) + "}"
+		} else {
+			return response
+		}
+	}
 }
 
 func (p *Pr0grammPlugin) handleClientSettingsResult(w http.ResponseWriter, settings *ClientSettings) {
-	res := fmt.Sprintf("{ \"maxHeight\": %d, "+
-		"\"tags\": %t, \"rating\": %t }", settings.maxHeight, settings.tags, settings.rating)
-	fmt.Fprint(w, res)
+	json, err := json.Marshal(&settings)
+	if err != nil {
+		fmt.Fprint(w, "{\"error\": \"serialization error\"}")
+	}
+	fmt.Fprint(w, string(json))
 }
 
 /* Handle pr0gramm items/info requests (tags, comments)

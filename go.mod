@@ -1,4 +1,4 @@
-module mm-test-plugin
+module mattermost-pr0gramm-plugin
 
 go 1.20
 
