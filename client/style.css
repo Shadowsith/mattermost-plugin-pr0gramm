@@ -1,0 +1,62 @@
+ /* The Modal (background) */
+ .pr0gramm-modal {
+     display: none;
+     /* Hidden by default */
+     position: absolute;
+     /* Stay in place */
+     z-index: 1000;
+     /* Sit on top */
+     left: 0;
+     top: 0;
+     width: 100%;
+     /* Full width */
+     height: 100%;
+     /* Full height */
+     overflow: scroll;
+     /* Enable scroll if needed */
+     background-color: rgb(0, 0, 0);
+     /* Fallback color */
+     background-color: rgba(0, 0, 0, 0.5);
+     /* Black w/ opacity */
+ }
+
+ .pr0gramm-modal-header {
+     background-color: #1c1c1c;
+     top: 0;
+     position: absolute;
+     height: 45px;
+     /* 15% from the top and centered */
+     width: 100%;
+     /* Could be more or less, depending on screen size */
+ }
+
+ /* Modal Content/Box */
+ .pr0gramm-modal-content {
+     background-color: transparent;
+     border: none;
+     margin: 5% auto;
+     /* 15% from the top and centered */
+     padding: 20px;
+     width: 80%;
+     height: 80%;
+     /* Could be more or less, depending on screen size */
+ }
+
+ .pr0gramm-modal-content img {
+     max-height: 100%;
+ }
+
+ /* The Close Button */
+ .pr0gramm-modal-close {
+     color: #aaa;
+     float: right;
+     font-size: 28px;
+     font-weight: bold;
+ }
+
+ .pr0gramm-modal-close:hover,
+ .pr0gramm-modal-close:focus {
+     color: black;
+     text-decoration: none;
+     cursor: pointer;
+ }

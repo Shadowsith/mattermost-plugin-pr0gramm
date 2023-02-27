@@ -3,15 +3,25 @@ export class ClientSettings {
         /**
          * @type {number}
          */
-        this.maxHeight = s.maxHeight;
+        this.maxHeight = null;
         /**
          * @type {boolean}
          */
-        this.tags = s.tags;
+        this.tags = null;
         /**
          * @type {boolean}
          */
-        this.rating = s.rating;
+        this.rating = null;
+
+        if (s != null) {
+            s.maxHeight != null ? this.maxHeight = s.maxHeight : this.maxHeight = 0;
+            s.tags != null ? this.tags = s.tags : this.tags = true;
+            s.rating != null ? this.rating = s.rating : this.rating = true;
+        } else {
+            this.maxHeight = 400;
+            this.tags = true;
+            this.rating = true;
+        }
     }
 }
 

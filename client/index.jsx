@@ -1,13 +1,28 @@
 import React from 'react';
 import axios from 'axios';
+import './style.css';
+
 import {
     Pr0grammInfo,
     Pr0grammGet,
+    ClientSettings,
 } from './types.jsx';
 
 class PostWillRenderEmbed extends React.Component {
     static plugin;
-    static apiUrl = '/plugins/pr0gramm';
+    /**
+     * @type {ClientSettings}
+     */
+    static settings;
+    /**
+     * @type {string}
+     */
+    static apiUrl;
+
+    constructor(props) {
+        super(props);
+        this.uid = this.uuidv4();
+    }
 
     render() {
         /**
@@ -27,10 +42,10 @@ class PostWillRenderEmbed extends React.Component {
             if (uri.length == 1) {
                 pr0grammId = uri[0];
             } else if (uri.length > 1) {
-                pr0grammId  = uri[1];
+                pr0grammId = uri[1];
             }
         }
-        const uid = this.uuidv4();
+        const uid = this.uid;
         try {
             if (pr0grammId > 0) {
                 this.handleId(uid, pr0grammId);
@@ -39,16 +54,31 @@ class PostWillRenderEmbed extends React.Component {
             }
         } catch {
         }
-        return <div id={uid}>
-            <div id={uid + '_tags'}></div>
-            <div id={uid + '_rating'}></div>
-            <div id={uid + '_file'}></div>
-        </div>
-    }
+        const css = `
+            .container-mh {
+                min-height: ${PostWillRenderEmbed.settings.maxHeight}px;
+            }
 
-    // TODO
-    getSettings() {
+            .file-mh {
+                min-height: ${PostWillRenderEmbed.settings.maxHeight}px;
+                height: ${PostWillRenderEmbed.settings.maxHeight}px;
+            }
+        `
 
+        return <>
+            <style>{css}</style>
+            <div id={uid} class="container-mh">
+                <div id={uid + '_tags'}></div>
+                <div id={uid + '_rating'}></div>
+                <div id={uid + '_file'} class="file-mh"></div>
+            </div>
+            <div id={uid + '_modal'} class="pr0gramm-modal">
+                <div class="pr0gramm-modal-content">
+                    <span class="pr0gramm-modal-close">&times;</span>
+                    <img id={uid + '_modal_img'} src={this.imgSrc}></img>
+                </div>
+            </div>
+        </>
     }
 
     /**
@@ -60,20 +90,23 @@ class PostWillRenderEmbed extends React.Component {
             .then(res => {
                 this.handleTagResult(uid, res.data);
             }).catch(err => {
-                console.log('Error', err);
+                // console.log('Error', err);
             });
         axios.get(`${PostWillRenderEmbed.apiUrl}/get?id=${id}`)
             .then(res => {
                 this.handleRating(uid, res.data);
                 this.handleImgResult(uid, res.data);
             }).catch(err => {
-                console.log('Error', err);
+                // console.log('Error', err);
             });
     }
 
     handleFileUrl(uid, fileUrl) {
         axios.get(`${PostWillRenderEmbed.apiUrl}/reverse?fileUrl=${encodeURIComponent(fileUrl)}`)
             .then(res => {
+                if (res.data.error != null) {
+                    this.handleFallbackImgResult(uid);
+                } else {
                 this.handleRating(uid, res.data);
                 this.handleImgResult(uid, res.data)
                 const f = new Pr0grammGet(res.data).items[0];
@@ -81,10 +114,12 @@ class PostWillRenderEmbed extends React.Component {
                     .then(r => {
                         this.handleTagResult(uid, r.data);
                     }).catch(err => {
-                        console.log('Error', err);
+                        // console.log('Error', err);
                     });
+
+                }
             }).catch(err => {
-                console.log('Error', err);
+                this.handleFallbackImgResult(uid);
             });
     }
 
@@ -128,23 +163,59 @@ class PostWillRenderEmbed extends React.Component {
         const maxHeight = file.clientSettings.maxHeight;
         if (f.includes('.mp4')) {
             const fileUrl = `https://vid.pr0gramm.com/` + f;
-            fileElement.innerHTML = `
-                        <video class="mt-1" controls style="max-height: ${maxHeight}px">
-                            <source src="${fileUrl}" type="video/mp4">
-                        </video>
-                        `;
+            fileElement.innerHTML = this.getVideoElement(fileUrl, maxHeight, 'video/mp4');
         } else if (f.includes('.webm')) {
             const fileUrl = `https://vid.pr0gramm.com/` + f;
-            fileElement.innerHTML = `
-                        <video class="mt-1" controls style="max-height: ${maxHeight}px">
-                            <source src="${fileUrl}" type="video/webm">
-                        </video>
-                        `;
+            fileElement.innerHTML = this.getVideoElement(fileUrl, maxHeight, 'video/webm');
         } else {
             const fileUrl = `https://img.pr0gramm.com/` + f;
-            fileElement.innerHTML =
-                `<img class="mt-1" src="${fileUrl}" style="max-height: ${maxHeight}px">`;
+            fileElement.append(this.getImgElement(fileUrl, maxHeight));
         }
+    }
+
+    handleFallbackImgResult(uid) {
+        const fileElement = document.getElementById(uid + '_file');
+        const url = this.props.embed.url;
+        const maxHeight = PostWillRenderEmbed.settings.maxHeight;
+        if (url.includes('.mp4')) {
+            fileElement.innerHTML = this.getVideoElement(url, maxHeight, 'video/mp4');
+        } else if (url.includes('.webm')) {
+            fileElement.innerHTML = this.getVideoElement(url, maxHeight, 'video/webm');
+        } else {
+            fileElement.append(this.getImgElement(url, maxHeight));
+        }
+    }
+
+    getVideoElement(url, maxHeight, type) {
+        return `<video class="mt-1" controls style="max-height: ${maxHeight}px"}>
+            <source src=${url} type=${type}></source>
+        </video>`;
+    }
+
+    getImgElement(url, maxHeight) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.className = 'mt-1';
+        img.style.maxHeight = maxHeight + 'px';
+        img.onclick = e => {
+            try {
+                const modal = document.getElementById(this.uid + '_modal');
+                const modalImg = document.getElementById(this.uid + '_modal_img');
+                modalImg.src = e.target.src;
+                modal.style.zIndex = 1000;
+                const self = this;
+                document.body.appendChild(modal);
+                modal.style.display = 'block';
+                modal.onclick = () => {
+                    const uidElem = document.getElementById(self.uid);
+                    modal.style.display = 'none';
+                    modal.style.zIndex = 1;
+                    uidElem.parentElement.appendChild(modal);
+                }
+            } catch {
+            }
+        }
+        return img;
     }
 
     uuidv4() {
@@ -156,9 +227,25 @@ class PostWillRenderEmbed extends React.Component {
 }
 
 class Pr0grammPlugin {
+    static apiUrl = '/plugins/pr0gramm';
+
     initialize(registry, store) {
         const plugin = store.getState().plugins.plugins.pr0gramm;
         PostWillRenderEmbed.plugin = plugin;
+        PostWillRenderEmbed.apiUrl = Pr0grammPlugin.apiUrl;
+
+        axios.get(`${PostWillRenderEmbed.apiUrl}/settings`)
+            .then(res => {
+                PostWillRenderEmbed.settings = new ClientSettings(res.data);
+                this.registerPlugin(registry);
+            })
+            .catch(err => {
+                PostWillRenderEmbed.settings = new ClientSettings(res.data);
+                this.registerPlugin(registry);
+            });
+    }
+
+    registerPlugin(registry) {
         registry.registerPostWillRenderEmbedComponent(
             (embed) => {
                 if (embed.type == 'link' && embed.url.includes('pr0gramm.com')) {
