@@ -68,14 +68,13 @@ class PostWillRenderEmbed extends React.Component {
         return <>
             <style>{css}</style>
             <div id={uid} class="container-mh">
-                <div id={uid + '_tags'}></div>
-                <div id={uid + '_rating'}></div>
+                <div id={uid + '_tags'} clas="mt-1 mb-1"></div>
+                <div id={uid + '_rating'} class="mt-2 mb-1"></div>
                 <div id={uid + '_file'} class="file-mh"></div>
             </div>
             <div id={uid + '_modal'} class="pr0gramm-modal">
                 <div class="pr0gramm-modal-content">
-                    <span class="pr0gramm-modal-close">&times;</span>
-                    <img id={uid + '_modal_img'} src={this.imgSrc}></img>
+                    <img id={uid + '_modal_img'} src=""></img>
                 </div>
             </div>
         </>
@@ -107,15 +106,15 @@ class PostWillRenderEmbed extends React.Component {
                 if (res.data.error != null) {
                     this.handleFallbackImgResult(uid);
                 } else {
-                this.handleRating(uid, res.data);
-                this.handleImgResult(uid, res.data)
-                const f = new Pr0grammGet(res.data).items[0];
-                axios.get(`${PostWillRenderEmbed.apiUrl}/info?id=${f.id}`)
-                    .then(r => {
-                        this.handleTagResult(uid, r.data);
-                    }).catch(err => {
-                        // console.log('Error', err);
-                    });
+                    this.handleRating(uid, res.data, true);
+                    this.handleImgResult(uid, res.data)
+                    const f = new Pr0grammGet(res.data).items[0];
+                    axios.get(`${PostWillRenderEmbed.apiUrl}/info?id=${f.id}`)
+                        .then(r => {
+                            this.handleTagResult(uid, r.data);
+                        }).catch(err => {
+                            // console.log('Error', err);
+                        });
 
                 }
             }).catch(err => {
@@ -133,12 +132,22 @@ class PostWillRenderEmbed extends React.Component {
          * @type {HTMLDivElement}
          */
         const tagElement = document.getElementById(uid + '_tags');
-        tagElement.innerHTML = `<small class="pt-2 pb-2" style="font-weight: bold;">
-            Tags: ${info.tags.map(x => x.tag).join(' | ')}
-        </small>`;
+        const relevant = info.tags.filter(x => x.confidence > 0.2)
+            .sort((a, b) => {
+                if (a.confidence < b.confidence) {
+                    return 1;
+                } else if (a.confidence > b.confidence) {
+                    return -1;
+                } else {
+                    return 0;
+                }
+            });
+        tagElement.innerHTML = relevant.map(x =>
+            `<span class="mt-1 mb-1 mr-1 badge badge-pr0tag no-flex">${x.tag}</span>`)
+            .join(' ')
     }
 
-    handleRating(uid, data) {
+    handleRating(uid, data, isFileUrl = false) {
         const get = new Pr0grammGet(data);
         if (get.clientSettings.rating == false) {
             return;
@@ -148,9 +157,23 @@ class PostWillRenderEmbed extends React.Component {
          * @type {HTMLDivElement}
          */
         const ratingElement = document.getElementById(uid + '_rating');
-        ratingElement.innerHTML = `<small class="pt-2 pb-2" style="font-weight: bold;">
-            Rating: ${file.up - file.down} (+${file.up} -${file.down})
-        </small>`;
+        ratingElement.innerHTML =
+            `<span class="pt-1 pb-1 mr-1 badge badge-info no-flex">
+                Rating: ${file.up - file.down} 
+            </span>
+            <span class="pt-1 pb-1 mr-1 badge badge-success no-flex">
+                +${file.up} 
+            </span>
+            <span class="pt-1 pb-1 mr-1 badge badge-danger no-flex">
+                -${file.down}
+            </small>`
+        if (isFileUrl == true) {
+            ratingElement.innerHTML += `
+            <a href="https://pr0gramm.com/new/${get.items[0].id}" target="_blank">
+                <span class="icon-link-variant">
+                Original post
+            </span>`;
+        }
     }
 
     handleImgResult(uid, data) {
