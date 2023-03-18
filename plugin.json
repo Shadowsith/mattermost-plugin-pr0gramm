@@ -4,8 +4,8 @@
     "description": "This plugin serves as a starting point for writing a Mattermost plugin.",
     "homepage_url": "https://github.com/Shadowsith/mattermost-plugin-pr0gramm",
     "support_url": "https://github.com/Shadowsith/mattermost-plugin-pr0gramm/issues",
-    "release_notes_url": "https://github.com/Shadowsith/mattermost-plugin-pr0gramm/releases/tag/1.2.0",
-    "version": "1.2.0",
+    "release_notes_url": "https://github.com/Shadowsith/mattermost-plugin-pr0gramm/releases/tag/1.2.1",
+    "version": "1.2.1",
     "min_server_version": "6.2.1",
     "server": {
         "executables": {

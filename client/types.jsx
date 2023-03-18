@@ -134,10 +134,6 @@ export class Pr0grammInfo {
          * @type {number}
          */
         this.ts = data.ts;
-        /**
-         * @type {ClientSettings}
-         */
-        this.clientSettings = new ClientSettings(data.clientSettings);
     }
 }
 
@@ -261,9 +257,5 @@ export class Pr0grammGet {
          * @type {number}
          */
         this.qc = data.qc;
-        /**
-         * @type {ClientSettings}
-         */
-        this.clientSettings = new ClientSettings(data.clientSettings);
     }
 }

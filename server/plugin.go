@@ -6,8 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/mattermost/mattermost-server/v6/plugin"
 )
@@ -40,6 +38,7 @@ const (
 )
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
+
 func (p *Pr0grammPlugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	w.Header().Set("Content-Type", "application/json")
@@ -47,125 +46,114 @@ func (p *Pr0grammPlugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *
 	switch path {
 	case routeSettings:
 		clientSettings := p.getClientSettings(w)
-		// fmt.Fprint(w, clientSettings.maxHeightStr)
 		p.handleClientSettingsResult(w, clientSettings)
-		break
 
 	case routeInfo:
 		resp, err := p.itemsInfo(w, r)
 		p.handleRequestResult(w, resp, err)
-		break
 
 	case routeGet:
 		resp, err := p.itemsGet(w, r)
 		p.handleRequestResult(w, resp, err)
-		break
 
 	case routeReverse:
 		resp, err := p.itemsReverse(w, r)
 		p.handleRequestResult(w, resp, err)
-		break
 
 	default:
 		resp, err := p.any(w, r)
 		p.handleRequestResult(w, resp, err)
-		break
 	}
 }
 
-func (p *Pr0grammPlugin) getSettings() *PluginSettings {
+func (p *Pr0grammPlugin) getSettings() PluginSettings {
 	pluginSettings, ok := p.API.GetConfig().PluginSettings.Plugins["pr0gramm"]
-	settings := new(PluginSettings)
-	if ok {
-		for k, v := range pluginSettings {
-			if k == "username" {
-				settings.Username = v.(string)
-			} else if k == "password" {
-				settings.Password = v.(string)
-			} else if k == "maxheight" {
-				maxHeight, err := strconv.Atoi(
-					fmt.Sprintf("%v", v))
-				if err != nil {
-					log.Fatal(err)
-				}
-				settings.MaxHeight = maxHeight
-			} else if k == "tags" {
-				val, ok := v.(bool)
-				if !ok {
-					val = false
-				}
-				settings.Tags = val
-			} else if k == "rating" {
-				val, ok := v.(bool)
-				if !ok {
-					val = false
-				}
-				settings.Rating = val
-			}
-		}
+	if !ok {
+		return p.getDefaultSettings()
 	}
+
+	settings := PluginSettings{
+		Username:  p.getStrVal(pluginSettings["username"]),
+		Password:  p.getStrVal(pluginSettings["password"]),
+		MaxHeight: p.getIntVal(pluginSettings["maxheight"]),
+		Tags:      p.getBoolVal(pluginSettings["tags"]),
+		Rating:    p.getBoolVal(pluginSettings["rating"]),
+	}
+
 	return settings
 }
 
-func (p *Pr0grammPlugin) getClientSettings(w http.ResponseWriter) *ClientSettings {
+func (p *Pr0grammPlugin) getClientSettings(w http.ResponseWriter) ClientSettings {
 	pluginSettings, ok := p.API.GetConfig().PluginSettings.Plugins["pr0gramm"]
-	settings := new(ClientSettings)
-	if ok {
-		for k, v := range pluginSettings {
-			if k == "maxheight" {
-				maxHeight, err := strconv.Atoi(
-					fmt.Sprintf("%v", v))
-				if err != nil {
-					log.Fatal(err)
-				}
-				settings.MaxHeight = maxHeight
-			} else if k == "tags" {
-				val, ok := v.(bool)
-				if !ok {
-					val = false
-				}
-				settings.Tags = val
-			} else if k == "rating" {
-				val, ok := v.(bool)
-				if !ok {
-					val = false
-				}
-				settings.Rating = val
-			}
-		}
+	if !ok {
+		return p.getDefaultClientSettings()
 	}
+
+	settings := ClientSettings{
+		MaxHeight: p.getIntVal(pluginSettings["maxheight"]),
+		Tags:      p.getBoolVal(pluginSettings["tags"]),
+		Rating:    p.getBoolVal(pluginSettings["rating"]),
+	}
+
 	return settings
+}
+
+func (p *Pr0grammPlugin) getDefaultSettings() PluginSettings {
+	return PluginSettings{
+		MaxHeight: 400,
+		Tags:      true,
+		Rating:    true,
+		Username:  "",
+		Password:  "",
+	}
+}
+
+func (p *Pr0grammPlugin) getDefaultClientSettings() ClientSettings {
+	return ClientSettings{
+		MaxHeight: 400,
+		Tags:      true,
+		Rating:    true,
+	}
+}
+
+func (p *Pr0grammPlugin) getStrVal(v interface{}) string {
+	val, ok := v.(string)
+	if !ok {
+		val = ""
+	}
+	return val
+}
+
+func (p *Pr0grammPlugin) getBoolVal(v interface{}) bool {
+	val, ok := v.(bool)
+	if !ok {
+		val = true
+	}
+	return val
+}
+
+func (p *Pr0grammPlugin) getIntVal(v interface{}) int {
+	val, ok := v.(int)
+	if !ok {
+		val = 400
+	}
+	return val
 }
 
 func (p *Pr0grammPlugin) handleRequestResult(w http.ResponseWriter, resp *http.Response, err error) {
 	if err != nil {
-		fmt.Fprint(w, "{ \"error\":\""+err.Error()+"\"}")
+		fmt.Fprintf(w, `{"error": "%s"}`, err.Error())
 	} else {
 		response := p.handleResponse(resp)
 		if response == "error" {
-			fmt.Fprint(w, "{ \"error\":\"pr0gramm http request error \"}")
+			fmt.Fprint(w, `{ "error": "pr0gramm http request error"}`)
 		} else {
-			clientSettings := p.getClientSettings(w)
-			response = strings.TrimRight(response, "}")
-			fmt.Fprint(w, p.addClientSettingsToResult(w, response, clientSettings))
+			fmt.Fprint(w, response)
 		}
 	}
 }
 
-func (p *Pr0grammPlugin) addClientSettingsToResult(w http.ResponseWriter, response string, settings *ClientSettings) string {
-	json, err := json.Marshal(&settings)
-	if err != nil {
-		return response
-	} else {
-		if string(json) != "{}" {
-			return strings.TrimRight(response, "}") + ", \"clientSettings\": " + string(json) + "}"
-		} else {
-			return response
-		}
-	}
-}
-
-func (p *Pr0grammPlugin) handleClientSettingsResult(w http.ResponseWriter, settings *ClientSettings) {
+func (p *Pr0grammPlugin) handleClientSettingsResult(w http.ResponseWriter, settings ClientSettings) {
 	json, err := json.Marshal(&settings)
 	if err != nil {
 		fmt.Fprint(w, "{\"error\": \"serialization error\"}")

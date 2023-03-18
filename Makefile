@@ -1,4 +1,5 @@
 all:
+	make test
 	make prepare
 	make linux
 	make macos
@@ -31,3 +32,6 @@ pack:
 	cp -r dist/main.js mattermost-pr0gramm-plugin/client
 	cp plugin.json mattermost-pr0gramm-plugin/
 	tar -czvf mattermost-pr0gramm-plugin.tar.gz mattermost-pr0gramm-plugin
+
+test:
+	go test ./server -v

@@ -125,7 +125,7 @@ class PostWillRenderEmbed extends React.Component {
 
     handleTagResult(uid, data) {
         const info = new Pr0grammInfo(data);
-        if (info.clientSettings.tags == false) {
+        if (PostWillRenderEmbed.settings.tags == false) {
             return;
         }
         /**
@@ -149,7 +149,7 @@ class PostWillRenderEmbed extends React.Component {
 
     handleRating(uid, data, isFileUrl = false) {
         const get = new Pr0grammGet(data);
-        if (get.clientSettings.rating == false) {
+        if (PostWillRenderEmbed.settings.rating == false) {
             return;
         }
         const file = get.items[0];
@@ -183,7 +183,7 @@ class PostWillRenderEmbed extends React.Component {
          */
         const fileElement = document.getElementById(uid + '_file');
         const f = file.items[0].image;
-        const maxHeight = file.clientSettings.maxHeight;
+        const maxHeight = PostWillRenderEmbed.settings.maxHeight;
         if (f.includes('.mp4')) {
             const fileUrl = `https://vid.pr0gramm.com/` + f;
             fileElement.innerHTML = this.getVideoElement(fileUrl, maxHeight, 'video/mp4');
@@ -263,7 +263,7 @@ class Pr0grammPlugin {
                 this.registerPlugin(registry);
             })
             .catch(err => {
-                PostWillRenderEmbed.settings = new ClientSettings(res.data);
+                PostWillRenderEmbed.settings = new ClientSettings();
                 this.registerPlugin(registry);
             });
     }
