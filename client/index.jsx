@@ -8,7 +8,7 @@ import {
     ClientSettings,
 } from './types.jsx';
 
-class PostWillRenderEmbed extends React.Component {
+export class PostWillRenderEmbed extends React.Component {
     static plugin;
     /**
      * @type {ClientSettings}
@@ -219,25 +219,24 @@ class PostWillRenderEmbed extends React.Component {
         const img = document.createElement('img');
         img.src = url;
         img.className = 'mt-1';
-        img.style.maxHeight = maxHeight + 'px';
-        img.onclick = e => {
-            try {
-                const modal = document.getElementById(this.uid + '_modal');
-                const modalImg = document.getElementById(this.uid + '_modal_img');
-                modalImg.src = e.target.src;
-                modal.style.zIndex = 1000;
-                const self = this;
-                document.body.appendChild(modal);
-                modal.style.display = 'block';
-                modal.onclick = () => {
-                    const uidElem = document.getElementById(self.uid);
-                    modal.style.display = 'none';
-                    modal.style.zIndex = 1;
-                    uidElem.parentElement.appendChild(modal);
-                }
-            } catch {
-            }
+        img.style.maxHeight = `${maxHeight}px`;
+
+        const showModal = () => {
+            const modal = document.getElementById(`${this.uid}_modal`);
+            const modalImg = document.getElementById(`${this.uid}_modal_img`);
+            modalImg.src = img.src;
+            modal.style.zIndex = 1000;
+            const uidElem = document.getElementById(this.uid);
+            document.body.appendChild(modal);
+            modal.style.display = 'block';
+            modal.addEventListener('click', () => {
+                modal.style.display = 'none';
+                modal.style.zIndex = 1;
+                uidElem.parentElement.appendChild(modal);
+            });
         }
+        img.addEventListener('click', showModal);
+
         return img;
     }
 
@@ -288,4 +287,6 @@ class Pr0grammPlugin {
     }
 }
 
-window.registerPlugin('pr0gramm', new Pr0grammPlugin());
+if (window.registerPlugin != null) {
+    window.registerPlugin('pr0gramm', new Pr0grammPlugin());
+}

@@ -35,3 +35,4 @@ pack:
 
 test:
 	go test ./server -v
+	npm test
