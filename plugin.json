@@ -5,7 +5,7 @@
     "homepage_url": "https://github.com/Shadowsith/mattermost-plugin-pr0gramm",
     "support_url": "https://github.com/Shadowsith/mattermost-plugin-pr0gramm/issues",
     "release_notes_url": "https://github.com/Shadowsith/mattermost-plugin-pr0gramm/releases/tag/1.2.2",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "min_server_version": "6.2.1",
     "server": {
         "executables": {
@@ -22,17 +22,10 @@
         "footer": "Source code: https://github.com/Shadowsith/mattermost-plugin-pr0gramm",
         "settings": [
             {
-                "key": "username",
-                "display_name": "Username",
+                "key": "cookie",
+                "display_name": "Session Cookie",
                 "type": "text",
-                "help_text": "Add Pr0gramm username to access member only content",
-                "default": ""
-            },
-            {
-                "key": "password",
-                "display_name": "Password",
-                "type": "text",
-                "help_text": "Add password for Pr0gramm username to access member only content",
+                "help_text": "Pr0gramm login session cookie",
                 "default": ""
             },
             {

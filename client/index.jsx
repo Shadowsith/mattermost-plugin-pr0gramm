@@ -8,7 +8,7 @@ import {
     ClientSettings,
 } from './types.jsx';
 
-export class PostWillRenderEmbed extends React.Component {
+export class PostWillRenderEmbed extends React.PureComponent {
     static plugin;
     /**
      * @type {ClientSettings}
@@ -24,6 +24,11 @@ export class PostWillRenderEmbed extends React.Component {
         this.uid = this.uuidv4();
     }
 
+    shouldComponentUpdate(nextProps, nextState) {
+        // renders only once
+        return false;
+    }
+
     render() {
         /**
          * @type {string}
@@ -36,14 +41,17 @@ export class PostWillRenderEmbed extends React.Component {
         if (url.includes('vid.') || url.includes('img.')) {
             fileUrl = url.replace('https://img.pr0gramm.com/', '')
                 .replace('https://vid.pr0gramm.com/', '');
-        } else {
+        } else if ((/\d{3}\d+$/.test(url))) {
             const uri = url.replace('https://pr0gramm.com/top/', '')
-                .replace('https://pr0gramm.com/new/', '').split('/');
+                .replace('https://pr0gramm.com/new/', '')
+                .split('/');
             if (uri.length == 1) {
                 pr0grammId = uri[0];
             } else if (uri.length > 1) {
                 pr0grammId = uri[1];
             }
+        } else {
+            return (null);
         }
         const uid = this.uid;
         try {
@@ -101,7 +109,8 @@ export class PostWillRenderEmbed extends React.Component {
     }
 
     handleFileUrl(uid, fileUrl) {
-        axios.get(`${PostWillRenderEmbed.apiUrl}/reverse?fileUrl=${encodeURIComponent(fileUrl)}`)
+        const reverseUrl = fileUrl.replace('-vp9s', '').replace('-vp9', '');
+        axios.get(`${PostWillRenderEmbed.apiUrl}/reverse?fileUrl=${encodeURIComponent(reverseUrl)}`)
             .then(res => {
                 if (res.data.error != null) {
                     this.handleFallbackImgResult(uid);
@@ -115,7 +124,6 @@ export class PostWillRenderEmbed extends React.Component {
                         }).catch(err => {
                             // console.log('Error', err);
                         });
-
                 }
             }).catch(err => {
                 this.handleFallbackImgResult(uid);
@@ -186,13 +194,13 @@ export class PostWillRenderEmbed extends React.Component {
         const maxHeight = PostWillRenderEmbed.settings.maxHeight;
         if (f.includes('.mp4')) {
             const fileUrl = `https://vid.pr0gramm.com/` + f;
-            fileElement.innerHTML = this.getVideoElement(fileUrl, maxHeight, 'video/mp4');
+            fileElement.innerHTML = this.getVideoElement(uid, fileUrl, maxHeight, 'video/mp4');
         } else if (f.includes('.webm')) {
             const fileUrl = `https://vid.pr0gramm.com/` + f;
-            fileElement.innerHTML = this.getVideoElement(fileUrl, maxHeight, 'video/webm');
+            fileElement.innerHTML = this.getVideoElement(uid, fileUrl, maxHeight, 'video/webm');
         } else {
             const fileUrl = `https://img.pr0gramm.com/` + f;
-            fileElement.append(this.getImgElement(fileUrl, maxHeight));
+            fileElement.append(this.getImgElement(uid, fileUrl, maxHeight));
         }
     }
 
@@ -201,24 +209,25 @@ export class PostWillRenderEmbed extends React.Component {
         const url = this.props.embed.url;
         const maxHeight = PostWillRenderEmbed.settings.maxHeight;
         if (url.includes('.mp4')) {
-            fileElement.innerHTML = this.getVideoElement(url, maxHeight, 'video/mp4');
+            fileElement.innerHTML = this.getVideoElement(uid, url, maxHeight, 'video/mp4');
         } else if (url.includes('.webm')) {
-            fileElement.innerHTML = this.getVideoElement(url, maxHeight, 'video/webm');
+            fileElement.innerHTML = this.getVideoElement(uid, url, maxHeight, 'video/webm');
         } else {
-            fileElement.append(this.getImgElement(url, maxHeight));
+            fileElement.append(this.getImgElement(uid, url, maxHeight));
         }
     }
 
-    getVideoElement(url, maxHeight, type) {
-        return `<video class="mt-1" controls style="max-height: ${maxHeight}px"}>
+    getVideoElement(uid, url, maxHeight, type) {
+        return `<video class="mt-1" id="${uid}_video" controls style="max-height: ${maxHeight}px"}>
             <source src=${url} type=${type}></source>
         </video>`;
     }
 
-    getImgElement(url, maxHeight) {
+    getImgElement(uid, url, maxHeight) {
         const img = document.createElement('img');
         img.src = url;
         img.className = 'mt-1';
+        img.id = uid + '_img';
         img.style.maxHeight = `${maxHeight}px`;
 
         const showModal = () => {

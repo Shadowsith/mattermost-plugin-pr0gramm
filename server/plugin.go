@@ -17,11 +17,10 @@ type Pr0grammPlugin struct {
 }
 
 type PluginSettings struct {
-	Username  string `json:"username"`
-	Password  string `json:"password"`
-	MaxHeight int    `json:"maxHeight"`
-	Tags      bool   `json:"tags"`
-	Rating    bool   `json:"rating"`
+	SessionCookie string `json:"cookie"`
+	MaxHeight     int    `json:"maxHeight"`
+	Tags          bool   `json:"tags"`
+	Rating        bool   `json:"rating"`
 }
 
 type ClientSettings struct {
@@ -30,17 +29,27 @@ type ClientSettings struct {
 	Rating    bool `json:"rating"`
 }
 
+type Pr0grammCaptcha struct {
+	Token   string `json:"token"`
+	Captcha string `json:"captcha"`
+	Ts      int    `json:"ts"`
+}
+
 const (
 	routeSettings = "/settings"
 	routeInfo     = "/info"
 	routeGet      = "/get"
 	routeReverse  = "/reverse"
+	routeLogin    = "/login"
+	routeAuth     = "/auth"
 )
 
 // ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
 
 func (p *Pr0grammPlugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
+	_settings := p.getSettings()
+
 	w.Header().Set("Content-Type", "application/json")
 
 	switch path {
@@ -49,19 +58,31 @@ func (p *Pr0grammPlugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *
 		p.handleClientSettingsResult(w, clientSettings)
 
 	case routeInfo:
-		resp, err := p.itemsInfo(w, r)
+		resp, err := p.itemsInfo(w, r, _settings)
 		p.handleRequestResult(w, resp, err)
 
 	case routeGet:
-		resp, err := p.itemsGet(w, r)
+		resp, err := p.itemsGet(w, r, _settings)
 		p.handleRequestResult(w, resp, err)
 
 	case routeReverse:
-		resp, err := p.itemsReverse(w, r)
+		resp, err := p.itemsReverse(w, r, _settings)
 		p.handleRequestResult(w, resp, err)
 
+	/*
+		case routeLogin:
+			w.Header().Set("Content-Type", "text/html")
+			resp, err := p.captchaGet(w)
+			p.handlLoginRequestResult(w, resp, err)
+
+		case routeAuth:
+			login := p.getPr0grammLogin(r)
+			resp, err := p.login(w, login)
+			p.handleRequestResult(w, resp, err)
+	*/
+
 	default:
-		resp, err := p.any(w, r)
+		resp, err := p.any(w, r, _settings)
 		p.handleRequestResult(w, resp, err)
 	}
 }
@@ -73,11 +94,10 @@ func (p *Pr0grammPlugin) getSettings() PluginSettings {
 	}
 
 	settings := PluginSettings{
-		Username:  p.getStrVal(pluginSettings["username"]),
-		Password:  p.getStrVal(pluginSettings["password"]),
-		MaxHeight: p.getIntVal(pluginSettings["maxheight"]),
-		Tags:      p.getBoolVal(pluginSettings["tags"]),
-		Rating:    p.getBoolVal(pluginSettings["rating"]),
+		SessionCookie: p.getStrVal(pluginSettings["cookie"]),
+		MaxHeight:     p.getIntVal(pluginSettings["maxheight"]),
+		Tags:          p.getBoolVal(pluginSettings["tags"]),
+		Rating:        p.getBoolVal(pluginSettings["rating"]),
 	}
 
 	return settings
@@ -100,11 +120,10 @@ func (p *Pr0grammPlugin) getClientSettings(w http.ResponseWriter) ClientSettings
 
 func (p *Pr0grammPlugin) getDefaultSettings() PluginSettings {
 	return PluginSettings{
-		MaxHeight: 400,
-		Tags:      true,
-		Rating:    true,
-		Username:  "",
-		Password:  "",
+		MaxHeight:     400,
+		Tags:          true,
+		Rating:        true,
+		SessionCookie: "",
 	}
 }
 
@@ -163,27 +182,71 @@ func (p *Pr0grammPlugin) handleClientSettingsResult(w http.ResponseWriter, setti
 
 /* Handle pr0gramm items/info requests (tags, comments)
  */
-func (p *Pr0grammPlugin) itemsInfo(w http.ResponseWriter, r *http.Request) (*http.Response, error) {
-	return http.Get("https://pr0gramm.com/api/items/info?itemId=" +
-		r.URL.Query().Get("id"))
+func (p *Pr0grammPlugin) itemsInfo(w http.ResponseWriter, r *http.Request, settings PluginSettings) (*http.Response, error) {
+	url := "https://pr0gramm.com/api/items/info?itemId=" + r.URL.Query().Get("id")
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if settings.SessionCookie != "" {
+		req.Header.Set("Cookie", settings.SessionCookie)
+	}
+	client := &http.Client{}
+	return client.Do(req)
+
+	// return http.Get("https://pr0gramm.com/api/items/info?itemId=" +
+	//	r.URL.Query().Get("id"))
 }
 
 /* Handle pr0gramm items/get requests (file url etc.)
  */
-func (p *Pr0grammPlugin) itemsGet(w http.ResponseWriter, r *http.Request) (*http.Response, error) {
-	return http.Get("https://pr0gramm.com/api/items/get?id=" +
-		r.URL.Query().Get("id"))
+func (p *Pr0grammPlugin) itemsGet(w http.ResponseWriter, r *http.Request, settings PluginSettings) (*http.Response, error) {
+	url := "https://pr0gramm.com/api/items/get?flags=31&id=" + r.URL.Query().Get("id")
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if settings.SessionCookie != "" {
+		req.Header.Set("Cookie", settings.SessionCookie)
+	}
+	client := &http.Client{}
+	return client.Do(req)
 }
 
 /* Handle pr0gramm items/get requests (file url etc.)
  */
-func (p *Pr0grammPlugin) itemsReverse(w http.ResponseWriter, r *http.Request) (*http.Response, error) {
-	return http.Get("https://pr0gramm.com/api/items/get?tags=!p%3A" +
-		r.URL.Query().Get("fileUrl"))
+func (p *Pr0grammPlugin) itemsReverse(w http.ResponseWriter, r *http.Request, settings PluginSettings) (*http.Response, error) {
+	url := "https://pr0gramm.com/api/items/get?flags=31&tags=!p%3A" + r.URL.Query().Get("fileUrl")
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if settings.SessionCookie != "" {
+		req.Header.Set("Cookie", settings.SessionCookie)
+	}
+	client := &http.Client{}
+	return client.Do(req)
 }
 
-func (p *Pr0grammPlugin) any(w http.ResponseWriter, r *http.Request) (*http.Response, error) {
-	return http.Get("https://pr0gramm.com/api/" + r.URL.Query().Get("any"))
+func (p *Pr0grammPlugin) any(w http.ResponseWriter, r *http.Request, settings PluginSettings) (*http.Response, error) {
+	url := "https://pr0gramm.com/api/" + r.URL.Query().Get("any")
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if settings.SessionCookie != "" {
+		req.Header.Set("Cookie", settings.SessionCookie)
+	}
+	client := &http.Client{}
+	return client.Do(req)
 }
 
 func (p *Pr0grammPlugin) handleResponse(resp *http.Response) string {
